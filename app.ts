@@ -5,7 +5,7 @@ import { connectToDb } from "./db/db.ts";
 import { latest } from "./db/migration-runner.ts";
 import usersRoutes from "./routes/user-routes.ts";
 
-export function buildApp(dbFile?: string, { migrate = false, logger = true } = {}) {
+export function buildApp(dbFile: string, { migrate = false, logger = true } = {}) {
   const db = connectToDb(dbFile);
   if (migrate) latest(db);
 

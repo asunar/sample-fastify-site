@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 
 export function connectToDb(dbFile?: string) {
-  const sqliteFile = dbFile || "data.db";
+  const sqliteFile = dbFile || "./db/data.db";
   const db = new DatabaseSync(sqliteFile);
   db.exec("PRAGMA journal_mode = WAL;");
   db.exec("PRAGMA synchronous = NORMAL;");
