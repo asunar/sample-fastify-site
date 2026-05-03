@@ -3,7 +3,7 @@ import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod
 import firstRoute from "./our-first-route.ts";
 import { connectToDb } from "./db/db.ts";
 import { latest } from "./db/migration-runner.ts";
-import usersRoutes from "./routes/users.ts";
+import usersRoutes from "./routes/user-routes.ts";
 
 export function buildApp(dbFile?: string, { migrate = false, logger = true } = {}) {
   const db = connectToDb(dbFile);

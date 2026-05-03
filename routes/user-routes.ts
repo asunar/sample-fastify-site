@@ -7,7 +7,7 @@ import {
   UsersUpdateParamsSchema,
 } from "../db/refinements.ts";
 
-export default function usersRoutes(db: DatabaseSync) {
+export default function userRoutes(db: DatabaseSync) {
   const plugin: FastifyPluginAsyncZod = async function (fastify) {
     fastify.post("/users", {
       schema: {

@@ -4,7 +4,9 @@
   "type": "module",
   "main": "server.ts",
   "scripts": {
-   "test": "node --test", 
+    "prepare": "git config core.hooksPath .githooks",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit",
     "start": "node server.ts",
     "migrate": "node scripts/migrate.ts && npm run generate:schemas",
     "generate:schemas": "node scripts/generateSchemas.ts"
@@ -15,7 +17,8 @@
   "description": "",
   "devDependencies": {
     "@types/node": "^24.11.0",
-    "fastify": "^5.8.2"
+    "fastify": "^5.8.2",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "fastify-sqlite": "^1.1.0",
