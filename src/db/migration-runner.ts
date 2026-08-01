@@ -6,12 +6,26 @@ import { type DatabaseSync } from "node:sqlite";
 // working directory.
 const defaultMigrationsDir = path.join(import.meta.dirname, "migrations");
 
+// Structurally satisfied by both `console` and Fastify's `fastify.log`, so the
+// runner writes to the app's logger when it has one and stdout when it doesn't.
+export type MigrationLogger = {
+  info(message: string): void;
+  error(message: string): void;
+};
+
+export type MigrationOptions = {
+  migrationsDir?: string;
+  logger?: MigrationLogger;
+};
+
 export function getCurrentVersion(db: DatabaseSync): number {
   const result = db.prepare("PRAGMA user_version;").get() as { user_version: number };
   return result.user_version;
 }
 
-export function latest(db: DatabaseSync, migrationsDir: string = defaultMigrationsDir) {
+export function latest(db: DatabaseSync, options: MigrationOptions = {}) {
+  const { migrationsDir = defaultMigrationsDir, logger = console } = options;
+
   const migrationFiles = fs.readdirSync(migrationsDir)
     .filter(file => file.endsWith(".sql"))
     .sort((a, b) => {
@@ -32,10 +46,10 @@ export function latest(db: DatabaseSync, migrationsDir: string = defaultMigratio
         db.exec(sql);
         db.exec(`PRAGMA user_version = ${version};`);
         db.exec("COMMIT;");
-        console.log(`Applied migration: ${file} (version ${version})`);
+        logger.info(`Applied migration: ${file} (version ${version})`);
       } catch (err) {
         db.exec("ROLLBACK;");
-        console.error(`Error applying migration ${file}:`, err);
+        logger.error(`Error applying migration ${file}: ${(err as Error).message}`);
         throw err;
       }
     }

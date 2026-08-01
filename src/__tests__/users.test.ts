@@ -88,6 +88,16 @@ describe("POST /users", () => {
 
     assert.strictEqual(response.statusCode, 400);
   });
+
+  test("returns 409 when the email already exists", async () => {
+    const payload = { email: "duplicate@example.com" };
+
+    const first = await app.inject({ method: "POST", url: "/users", payload });
+    assert.strictEqual(first.statusCode, 201);
+
+    const second = await app.inject({ method: "POST", url: "/users", payload });
+    assert.strictEqual(second.statusCode, 409, "Duplicate email should conflict");
+  });
 });
 
 describe("PATCH /users/:id", () => {
@@ -138,6 +148,36 @@ describe("PATCH /users/:id", () => {
     });
 
     assert.strictEqual(response.statusCode, 400);
+  });
+
+  test("returns 404 when the user does not exist", async () => {
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/users/99999",
+      payload: { email: "ghost@example.com" },
+    });
+
+    assert.strictEqual(response.statusCode, 404, "Unknown id should not report success");
+  });
+
+  test("returns 204 for an empty body on an existing user", async () => {
+    const response = await app.inject({
+      method: "PATCH",
+      url: `/users/${userId}`,
+      payload: {},
+    });
+
+    assert.strictEqual(response.statusCode, 204);
+  });
+
+  test("returns 404 for an empty body on a user that does not exist", async () => {
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/users/99999",
+      payload: {},
+    });
+
+    assert.strictEqual(response.statusCode, 404);
   });
 
   test("returns 400 when dob is invalid", async () => {

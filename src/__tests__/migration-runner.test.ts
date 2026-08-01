@@ -36,7 +36,7 @@ test("latest applies migrations in order and updates user_version", () => {
     "101_test.sql": "CREATE TABLE test2 (id INTEGER);",
   }, (dir) => {
     db.exec("PRAGMA user_version = 99;");
-    latest(db, dir);
+    latest(db, { migrationsDir: dir });
 
     assert.strictEqual(getCurrentVersion(db), 101, "Should update to the latest version");
 
@@ -55,7 +55,7 @@ test("latest skips already applied migrations", () => {
     "999_test.sql": "CREATE TABLE test_skipped (id INTEGER);",
   }, (dir) => {
     db.exec("PRAGMA user_version = 999;"); // Version 999 already applied
-    latest(db, dir);
+    latest(db, { migrationsDir: dir });
 
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='test_skipped'").all();
     assert.strictEqual(tables.length, 0, "test_skipped table should NOT exist because migration was skipped");
