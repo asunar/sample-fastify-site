@@ -18,7 +18,7 @@ node --test __tests__/greeting.test.ts
 
 ## Architecture
 
-This is a Fastify v5 REST API using **no build step** — TypeScript runs directly via Node.js 24. The project is `"type": "module"` (ESM).
+This is a Fastify v5 REST API using **no build step** — TypeScript runs directly via Node.js 26. The project is `"type": "module"` (ESM).
 
 **Key principle:** Favor native Node.js modules over npm packages (e.g., `node:test` over jest, `node:sqlite` over an ORM, `node:util` parseArgs over commander).
 
