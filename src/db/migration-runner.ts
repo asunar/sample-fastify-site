@@ -2,13 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { type DatabaseSync } from "node:sqlite";
 
+// Resolved from this module, not process.cwd(), so the runner works from any
+// working directory.
+const defaultMigrationsDir = path.join(import.meta.dirname, "migrations");
+
 export function getCurrentVersion(db: DatabaseSync): number {
   const result = db.prepare("PRAGMA user_version;").get() as { user_version: number };
   return result.user_version;
 }
 
-export function latest(db: DatabaseSync) {
-  const migrationsDir = path.join(process.cwd(), "db", "migrations");
+export function latest(db: DatabaseSync, migrationsDir: string = defaultMigrationsDir) {
   const migrationFiles = fs.readdirSync(migrationsDir)
     .filter(file => file.endsWith(".sql"))
     .sort((a, b) => {

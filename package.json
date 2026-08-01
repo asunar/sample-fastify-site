@@ -2,12 +2,12 @@
   "name": "my-no-build-ts-node-template",
   "version": "1.0.0",
   "type": "module",
-  "main": "server.ts",
+  "main": "src/server.ts",
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
     "test": "node --test",
     "typecheck": "tsc --noEmit",
-    "start": "node server.ts",
+    "start": "node src/server.ts",
     "migrate": "node scripts/migrate.ts && npm run generate:schemas",
     "generate:schemas": "node scripts/generateSchemas.ts"
   },
