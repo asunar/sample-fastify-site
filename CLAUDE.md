@@ -22,7 +22,7 @@ This is a Fastify v5 REST API using **no build step** — TypeScript runs direct
 
 **Key principle:** Favor native Node.js modules over npm packages (e.g., `node:test` over jest, `node:sqlite` over an ORM, `node:util` parseArgs over commander).
 
-All application code lives under `src/`. Only project scaffolding (config, CI, hooks, `scripts/`, `integration-tests/`) sits at the repository root.
+All application code lives under `src/`. Only project scaffolding (config, CI, hooks, `scripts/`) sits at the repository root.
 
 Paths are resolved with `import.meta.dirname`, never `process.cwd()`, so the app runs correctly from any working directory.
 
@@ -65,7 +65,9 @@ Read from the environment, all optional:
 ### Tests
 Uses Node.js native `node:test`. Test files live in `src/__tests__/`. Database tests use in-memory SQLite (`:memory:`) to avoid touching `data.db`.
 
-`integration-tests/users.sh` runs against a live server (`npm start` first) and self-checks: it prints ok/FAIL per case and exits non-zero on any failure. It generates fresh email addresses per run, so it is safe to run repeatedly against the same database despite the unique constraint on `email`. Override the target with `BASE_URL`.
+`src/__tests__/server.test.ts` spawns the real `src/server.ts` as a child process to cover boot config, port/host binding and shutdown signals — behaviour that cannot be reached with `inject()`.
+
+There is no shell-based integration suite; `npm test` is the whole story. **Known gap:** nothing verifies that migrations have actually been applied to a deployed database, because tests always migrate a clean one. A schema-version check at boot would close this properly.
 
 ### Validation
 

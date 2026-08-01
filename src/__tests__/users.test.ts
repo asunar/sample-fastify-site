@@ -150,6 +150,41 @@ describe("PATCH /users/:id", () => {
     assert.strictEqual(response.statusCode, 400);
   });
 
+  test("returns 409 when renaming to an address another user holds", async () => {
+    const taken = "taken@example.com";
+    const created = await app.inject({
+      method: "POST",
+      url: "/users",
+      payload: { email: taken },
+    });
+    assert.strictEqual(created.statusCode, 201);
+
+    const response = await app.inject({
+      method: "PATCH",
+      url: `/users/${userId}`,
+      payload: { email: taken },
+    });
+
+    assert.strictEqual(response.statusCode, 409, "Renaming onto a taken address should conflict");
+    assert.strictEqual(response.json().error, "Conflict");
+  });
+
+  test("allows a user to be updated to its own current email", async () => {
+    // SQLite's unique index does not fire when the value is unchanged, so this
+    // must not be mistaken for a conflict.
+    const email = "self-update@example.com";
+    const created = await app.inject({ method: "POST", url: "/users", payload: { email } });
+    const id = created.json().id;
+
+    const response = await app.inject({
+      method: "PATCH",
+      url: `/users/${id}`,
+      payload: { email },
+    });
+
+    assert.strictEqual(response.statusCode, 204);
+  });
+
   test("returns 404 when the user does not exist", async () => {
     const response = await app.inject({
       method: "PATCH",
