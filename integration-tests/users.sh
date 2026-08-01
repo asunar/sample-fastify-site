@@ -102,5 +102,7 @@ echo "=== PATCH: invalid dob ==="
 PAYLOAD='{"dob": "not-a-date"}'
 echo "Payload: $PAYLOAD"
 echo "Response:"
+
+curl -s -w "\nHTTP %{http_code}\n" -X PATCH http://localhost:3000/users/1 \
   -H "Content-Type: application/json" \
   -d "$PAYLOAD"
