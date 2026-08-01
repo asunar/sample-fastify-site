@@ -1,10 +1,10 @@
 // It is run after migrations are applied to generate the base schemas.
-// Format refinements (e.g. z.email(), z.iso.date()) live in db/refinements.ts.
+// Format refinements (e.g. z.email(), z.iso.date()) live in src/db/refinements.ts.
 
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { connectToDb } from "../db/db.ts";
+import { connectToDb } from "../src/db/db.ts";
 
 type ColumnInfo = {
   cid: number;
@@ -83,8 +83,8 @@ const output = [
   "",
 ].join("\n");
 
-const outDir = path.join(process.cwd(), "generated");
+const outDir = path.join(import.meta.dirname, "..", "src", "generated");
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
 
 fs.writeFileSync(path.join(outDir, "schemas.ts"), output);
-console.log("Generated generated/schemas.ts");
+console.log("Generated src/generated/schemas.ts");

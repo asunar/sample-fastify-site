@@ -2,9 +2,9 @@
 data.db
 data.db-shm
 data.db-wal
-db/data.db
-db/data.db-shm
-db/data.db-wal
+src/db/data.db
+src/db/data.db-shm
+src/db/data.db-wal
 
 # Logs
 logs
