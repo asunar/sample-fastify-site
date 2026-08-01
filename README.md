@@ -1,4 +1,4 @@
-# my-no-build-ts-node-template
+# sample-fastify-site
 TS node no-build template repo
 
 ## Request handling
