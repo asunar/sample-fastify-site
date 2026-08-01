@@ -6,6 +6,7 @@ import Fastify, {
 import {
   serializerCompiler,
   validatorCompiler,
+  type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import { connectToDb } from "./db/db.ts";
 import { latest } from "./db/migration-runner.ts";
@@ -33,7 +34,12 @@ export function buildApp(
   dbFile: string,
   { migrate = false, logger = defaultLoggerOptions() } = {},
 ) {
-  const fastify = Fastify({ logger, bodyLimit: BODY_LIMIT });
+  // withTypeProvider is compile-time only — it re-types this instance so any
+  // route declared directly here infers from its zod schemas, the same way the
+  // FastifyPluginAsyncZod route plugins already do. The runtime wiring is the
+  // validator/serializer compiler pair set below.
+  const fastify = Fastify({ logger, bodyLimit: BODY_LIMIT })
+    .withTypeProvider<ZodTypeProvider>();
 
   // Built after Fastify so migrations report through the app's logger rather
   // than stdout, and stay silent when logging is disabled.

@@ -5,6 +5,12 @@
     "moduleResolution": "NodeNext",
     "strict": true,
     "noEmit": true,
+    // The two flags that make type stripping enforceable rather than a
+    // convention: erasableSyntaxOnly rejects syntax Node cannot strip (enums,
+    // parameter properties, namespaces), and verbatimModuleSyntax requires
+    // `import type` so type-only imports never survive as runtime imports.
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
     "skipLibCheck": true,
   },

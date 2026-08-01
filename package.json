@@ -5,7 +5,7 @@
   "main": "src/server.ts",
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
-    "test": "node --test",
+    "test": "npm run typecheck && node --test",
     "typecheck": "tsc --noEmit",
     "start": "node src/server.ts",
     "migrate": "node scripts/migrate.ts && npm run generate:schemas",
