@@ -17,11 +17,11 @@
   "description": "",
   "devDependencies": {
     "@types/node": "^26.1.2",
-    "fastify": "^5.8.2",
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "fastify-sqlite": "^1.1.0",
+    "close-with-grace": "^2.5.0",
+    "fastify": "^5.8.2",
     "fastify-type-provider-zod": "^6.1.0",
     "zod": "^4.3.6"
   }
