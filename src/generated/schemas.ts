@@ -29,7 +29,7 @@ export const BaseAuthorsRowSchema = z.object({
   id: z.number().int(),
   name: z.string(),
   email: z.string(),
-  bio: z.string().optional(),
+  bio: z.string().nullable(),
   created_at: z.string(),
 });
 export const BasePostsInsertSchema = z.object({
@@ -95,7 +95,7 @@ export const BaseCommentsRowSchema = z.object({
   id: z.number().int(),
   post_id: z.number().int(),
   author_name: z.string(),
-  author_email: z.string().optional(),
+  author_email: z.string().nullable(),
   body: z.string(),
   created_at: z.string(),
 });

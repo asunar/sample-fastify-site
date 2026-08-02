@@ -5,10 +5,14 @@
 import type { DatabaseSync } from "node:sqlite";
 import { type ColumnInfo, getColumns, toPascalCase } from "./introspect.ts";
 
-// "insert" answers "must the client supply this?", "row" answers "can this be
-// absent from a stored row?". The two diverge on defaulted NOT NULL columns,
-// which the database fills on the way in and always has on the way out.
-export type SchemaContext = "insert" | "row";
+// Each schema asks a different question of the same column, and they do not have
+// the same answer:
+//
+//   insert — must the client supply this?      no, if it is nullable or defaulted
+//   row    — what can a stored value be?       null, if the column is nullable
+//   update — a partial, so everything optional
+//   params — a path parameter, so always required
+export type SchemaContext = "insert" | "row" | "update" | "params";
 
 export function columnToZodExpr(col: ColumnInfo, context: SchemaContext = "row"): string {
   const typeMap: Record<string, string> = {
@@ -19,13 +23,27 @@ export function columnToZodExpr(col: ColumnInfo, context: SchemaContext = "row")
   };
   const base = typeMap[col.type.toUpperCase()] ?? "z.string()";
 
-  // A primary key reports notnull=0 when it is a rowid alias, but a stored row
-  // always has one — so in the row context the key is presence, not nullability.
-  const optional = context === "insert"
-    ? !col.notnull || col.dflt_value !== null
-    : !col.notnull && !col.pk;
+  switch (context) {
+    case "params":
+      return base;
 
-  return optional ? `${base}.optional()` : base;
+    case "update":
+      return `${base}.optional()`;
+
+    case "insert":
+      // The database fills defaulted columns, so requiring them of the client
+      // would force it to send a value the server was going to generate.
+      return !col.notnull || col.dflt_value !== null ? `${base}.optional()` : base;
+
+    case "row":
+      // .nullable(), not .optional(): node:sqlite returns SQL NULL as JavaScript
+      // null and always includes the column, and zod's .optional() is
+      // `| undefined`, which rejects null and fails response serialization.
+      //
+      // A primary key reports notnull=0 when it is a rowid alias, but a stored
+      // row always has one, so presence rather than nullability decides it.
+      return !col.notnull && !col.pk ? `${base}.nullable()` : base;
+  }
 }
 
 export function generateSchemaForTable(db: DatabaseSync, table: string): string {
@@ -45,12 +63,12 @@ export function generateSchemaForTable(db: DatabaseSync, table: string): string 
 
   const updateFields = columns
     .filter((col) => !col.pk)
-    .map((col) => `  ${col.name}: ${columnToZodExpr(col).replace(/\.optional\(\)$/, "")}.optional(),`)
+    .map((col) => `  ${col.name}: ${columnToZodExpr(col, "update")},`)
     .join("\n");
 
   const paramsFields = columns
     .filter((col) => col.pk)
-    .map((col) => `  ${col.name}: ${columnToZodExpr(col).replace(/\.optional\(\)$/, "")},`)
+    .map((col) => `  ${col.name}: ${columnToZodExpr(col, "params")},`)
     .join("\n");
 
   // Every column, primary keys included. The read endpoints serialize whole rows,

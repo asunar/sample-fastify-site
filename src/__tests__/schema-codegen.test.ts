@@ -35,11 +35,24 @@ describe("columnToZodExpr", () => {
     db.close();
   });
 
-  test("a nullable column is optional in both contexts", () => {
+  // The distinction that matters: node:sqlite hands back SQL NULL as JavaScript
+  // null and always includes the column, so a row's nullable value is null, never
+  // absent. zod's .optional() means `| undefined` and rejects null outright.
+  test("a nullable column is optional to insert and nullable in a row", () => {
     const { db, columns } = fixtureColumns();
 
     assert.strictEqual(columnToZodExpr(columns.nullable, "insert"), "z.string().optional()");
-    assert.strictEqual(columnToZodExpr(columns.nullable, "row"), "z.string().optional()");
+    assert.strictEqual(columnToZodExpr(columns.nullable, "row"), "z.string().nullable()");
+
+    db.close();
+  });
+
+  test("update makes every column optional and params leaves them required", () => {
+    const { db, columns } = fixtureColumns();
+
+    assert.strictEqual(columnToZodExpr(columns.required, "update"), "z.string().optional()");
+    assert.strictEqual(columnToZodExpr(columns.nullable, "update"), "z.string().optional()");
+    assert.strictEqual(columnToZodExpr(columns.id, "params"), "z.number().int()");
 
     db.close();
   });
@@ -102,6 +115,8 @@ describe("generateSchemaForTable", () => {
     const row = block("Row");
     assert.match(row, /literal: z\.number\(\)\.int\(\),/);
     assert.match(row, /expression: z\.string\(\),/);
+    // A NULL in this column must serialize, not 500.
+    assert.match(row, /nullable: z\.string\(\)\.nullable\(\),/);
 
     // The primary key is excluded from the write body and non-optional in the row.
     assert.ok(!insert.includes("id:"));

@@ -57,6 +57,7 @@
                         "type": "string"
                       },
                       "bio": {
+                        "nullable": true,
                         "type": "string"
                       },
                       "created_at": {
@@ -67,6 +68,7 @@
                       "id",
                       "name",
                       "email",
+                      "bio",
                       "created_at"
                     ],
                     "additionalProperties": false
@@ -196,6 +198,7 @@
                       "type": "string"
                     },
                     "bio": {
+                      "nullable": true,
                       "type": "string"
                     },
                     "created_at": {
@@ -206,6 +209,7 @@
                     "id",
                     "name",
                     "email",
+                    "bio",
                     "created_at"
                   ],
                   "additionalProperties": false
@@ -468,6 +472,7 @@
                         "type": "string"
                       },
                       "author_email": {
+                        "nullable": true,
                         "type": "string"
                       },
                       "body": {
@@ -481,6 +486,7 @@
                       "id",
                       "post_id",
                       "author_name",
+                      "author_email",
                       "body",
                       "created_at"
                     ],
@@ -617,6 +623,7 @@
                       "type": "string"
                     },
                     "author_email": {
+                      "nullable": true,
                       "type": "string"
                     },
                     "body": {
@@ -630,6 +637,7 @@
                     "id",
                     "post_id",
                     "author_name",
+                    "author_email",
                     "body",
                     "created_at"
                   ],
