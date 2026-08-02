@@ -6,22 +6,14 @@ import {
   UsersInsertResponseSchema,
   UsersUpdateSchema,
   UsersUpdateParamsSchema,
-} from "../db/refinements.ts";
+} from "../db/refinements/users.ts";
+import { isUniqueViolation } from "./sqlite-errors.ts";
 
 const ErrorSchema = z.object({
   statusCode: z.number().int(),
   error: z.string(),
   message: z.string(),
 });
-
-// SQLITE_CONSTRAINT_UNIQUE. node:sqlite exposes the raw SQLite result code as
-// `errcode`, which is stabler to match on than the error message text.
-const SQLITE_CONSTRAINT_UNIQUE = 2067;
-
-function isUniqueViolation(err: unknown): boolean {
-  return typeof err === "object" && err !== null
-    && (err as { errcode?: number }).errcode === SQLITE_CONSTRAINT_UNIQUE;
-}
 
 export default function userRoutes(db: DatabaseSync) {
   const plugin: FastifyPluginAsyncZod = async function (fastify) {
