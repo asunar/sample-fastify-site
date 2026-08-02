@@ -20,3 +20,9 @@ export const BaseUsersUpdateSchema = z.object({
 export const BaseUsersUpdateParamsSchema = z.object({
   id: z.number().int(),
 });
+
+export const BaseUsersRowSchema = z.object({
+  id: z.number().int().optional(),
+  email: z.string().optional(),
+  dob: z.string().optional(),
+});

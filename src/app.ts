@@ -1,21 +1,35 @@
+import fs from "node:fs";
+import path from "node:path";
+import type { DatabaseSync } from "node:sqlite";
+import { pathToFileURL } from "node:url";
+import fastifySwagger from "@fastify/swagger";
+import fastifySwaggerUi from "@fastify/swagger-ui";
 import Fastify, {
   type FastifyError,
   type FastifyReply,
   type FastifyRequest,
 } from "fastify";
 import {
+  jsonSchemaTransform,
+  jsonSchemaTransformObject,
   serializerCompiler,
   validatorCompiler,
+  type FastifyPluginAsyncZod,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import { connectToDb } from "./db/db.ts";
 import { latest } from "./db/migration-runner.ts";
-import healthRoutes from "./routes/health-routes.ts";
-import usersRoutes from "./routes/user-routes.ts";
 
 // 1MB. Fastify's own default, set explicitly so the limit is visible rather than
 // implied — it is the first thing to tune if large payloads are ever expected.
 const BODY_LIMIT = 1_048_576;
+
+const ROUTES_DIR = path.join(import.meta.dirname, "routes");
+
+// Every route module exports `default (db) => FastifyPluginAsyncZod`. Discovery
+// relies on that shape, so a scaffolded file is live the moment it is written and
+// nothing has to edit this file.
+type RouteModule = { default: (db: DatabaseSync) => FastifyPluginAsyncZod };
 
 // The skill suggests a pino-pretty transport for development; that needs an npm
 // dependency, so this stays with levels only, per the repo's native-first rule.
@@ -80,8 +94,41 @@ export function buildApp(
     });
   });
 
-  fastify.register(healthRoutes(db));
-  fastify.register(usersRoutes(db));
+  // Registered before the routes so it observes every one of them. The transforms
+  // convert the zod route schemas into OpenAPI-flavoured JSON Schema; because the
+  // spec is read off the live route table it cannot drift from what is served.
+  fastify.register(fastifySwagger, {
+    openapi: {
+      info: {
+        title: "sample-fastify-site",
+        description: "REST API with zod-validated requests and responses.",
+        version: "1.0.0",
+      },
+    },
+    transform: jsonSchemaTransform,
+    transformObject: jsonSchemaTransformObject,
+  });
+
+  fastify.register(fastifySwaggerUi, { routePrefix: "/docs" });
+
+  // swagger-ui serves the document at /docs/json. This alias is the stable,
+  // tool-friendly URL, and `hide` keeps the spec from documenting itself.
+  fastify.get("/openapi.json", { schema: { hide: true } }, async () => fastify.swagger());
+
+  // An async plugin rather than a top-level await, which keeps buildApp
+  // synchronous for its callers — app.ready() waits for this either way.
+  fastify.register(async (instance) => {
+    const files = fs.readdirSync(ROUTES_DIR)
+      .filter((file) => file.endsWith("-routes.ts"))
+      .sort();
+
+    for (const file of files) {
+      const module = await import(
+        pathToFileURL(path.join(ROUTES_DIR, file)).href
+      ) as RouteModule;
+      instance.register(module.default(db));
+    }
+  });
 
   return fastify;
 }

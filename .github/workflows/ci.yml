@@ -17,3 +17,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      # openapi.json is committed so API changes surface in review. Regenerating
+      # it here fails the build when someone changes a route schema without it.
+      - run: npm run generate:openapi
+      - run: git diff --exit-code openapi.json

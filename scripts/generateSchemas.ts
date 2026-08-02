@@ -1,19 +1,11 @@
 // It is run after migrations are applied to generate the base schemas.
-// Format refinements (e.g. z.email(), z.iso.date()) live in src/db/refinements.ts.
+// Format refinements (e.g. z.email(), z.iso.date()) live in src/db/refinements/.
 
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { connectToDb } from "../src/db/db.ts";
-
-type ColumnInfo = {
-  cid: number;
-  name: string;
-  type: string;
-  notnull: number;
-  dflt_value: string | null;
-  pk: number;
-};
+import { type ColumnInfo, getColumns, getTables, toPascalCase } from "./introspect.ts";
 
 function columnToZodExpr(col: ColumnInfo): string {
   const typeMap: Record<string, string> = {
@@ -26,19 +18,10 @@ function columnToZodExpr(col: ColumnInfo): string {
   return col.notnull ? base : `${base}.optional()`;
 }
 
-function getTables(db: DatabaseSync): string[] {
-  const rows = db
-    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-    .all() as { name: string }[];
-  return rows.map((r) => r.name);
-}
-
 function generateSchemaForTable(db: DatabaseSync, table: string): string {
-  const columns = db
-    .prepare(`PRAGMA table_info('${table}')`)
-    .all() as ColumnInfo[];
+  const columns = getColumns(db, table);
 
-  const prefix = `Base${table.charAt(0).toUpperCase() + table.slice(1)}`;
+  const prefix = `Base${toPascalCase(table)}`;
 
   const bodyFields = columns
     .filter((col) => !col.pk)
@@ -60,11 +43,18 @@ function generateSchemaForTable(db: DatabaseSync, table: string): string {
     .map((col) => `  ${col.name}: ${columnToZodExpr(col).replace(/\.optional\(\)$/, "")},`)
     .join("\n");
 
+  // Every column, primary keys included. The read endpoints serialize whole rows,
+  // which none of the write-shaped schemas above describe.
+  const rowFields = columns
+    .map((col) => `  ${col.name}: ${columnToZodExpr(col)},`)
+    .join("\n");
+
   return [
     `export const ${prefix}InsertSchema = z.object({\n${bodyFields}\n});`,
     `export const ${prefix}InsertResponseSchema = z.object({\n${responseFields}\n});`,
     `export const ${prefix}UpdateSchema = z.object({\n${updateFields}\n});`,
     `export const ${prefix}UpdateParamsSchema = z.object({\n${paramsFields}\n});`,
+    `export const ${prefix}RowSchema = z.object({\n${rowFields}\n});`,
   ].join("\n\n");
 }
 

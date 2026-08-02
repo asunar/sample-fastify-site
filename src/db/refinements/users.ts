@@ -3,7 +3,7 @@ import {
   BaseUsersInsertSchema,
   BaseUsersInsertResponseSchema,
   BaseUsersUpdateParamsSchema,
-} from "../generated/schemas.ts";
+} from "../../generated/schemas.ts";
 
 export const UsersInsertSchema = BaseUsersInsertSchema.extend({
   email: z.email(),
