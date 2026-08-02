@@ -3,60 +3,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { connectToDb } from "../src/db/db.ts";
-import { type ColumnInfo, getColumns, getTables, toPascalCase } from "./introspect.ts";
-
-function columnToZodExpr(col: ColumnInfo): string {
-  const typeMap: Record<string, string> = {
-    INTEGER: "z.number().int()",
-    INT: "z.number().int()",
-    REAL: "z.number()",
-    NUMERIC: "z.number()",
-  };
-  const base = typeMap[col.type.toUpperCase()] ?? "z.string()";
-  return col.notnull ? base : `${base}.optional()`;
-}
-
-function generateSchemaForTable(db: DatabaseSync, table: string): string {
-  const columns = getColumns(db, table);
-
-  const prefix = `Base${toPascalCase(table)}`;
-
-  const bodyFields = columns
-    .filter((col) => !col.pk)
-    .map((col) => `  ${col.name}: ${columnToZodExpr(col)},`)
-    .join("\n");
-
-  const responseFields = columns
-    .filter((col) => col.pk)
-    .map((col) => `  ${col.name}: ${columnToZodExpr(col)},`)
-    .join("\n");
-
-  const updateFields = columns
-    .filter((col) => !col.pk)
-    .map((col) => `  ${col.name}: ${columnToZodExpr(col).replace(/\.optional\(\)$/, "")}.optional(),`)
-    .join("\n");
-
-  const paramsFields = columns
-    .filter((col) => col.pk)
-    .map((col) => `  ${col.name}: ${columnToZodExpr(col).replace(/\.optional\(\)$/, "")},`)
-    .join("\n");
-
-  // Every column, primary keys included. The read endpoints serialize whole rows,
-  // which none of the write-shaped schemas above describe.
-  const rowFields = columns
-    .map((col) => `  ${col.name}: ${columnToZodExpr(col)},`)
-    .join("\n");
-
-  return [
-    `export const ${prefix}InsertSchema = z.object({\n${bodyFields}\n});`,
-    `export const ${prefix}InsertResponseSchema = z.object({\n${responseFields}\n});`,
-    `export const ${prefix}UpdateSchema = z.object({\n${updateFields}\n});`,
-    `export const ${prefix}UpdateParamsSchema = z.object({\n${paramsFields}\n});`,
-    `export const ${prefix}RowSchema = z.object({\n${rowFields}\n});`,
-  ].join("\n\n");
-}
+import { getTables } from "./introspect.ts";
+import { generateSchemaForTable } from "./schema-codegen.ts";
 
 const db = connectToDb();
 const tables = getTables(db);
