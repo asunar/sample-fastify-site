@@ -19,9 +19,11 @@ export function columnToZodExpr(col: ColumnInfo, context: SchemaContext = "row")
   };
   const base = typeMap[col.type.toUpperCase()] ?? "z.string()";
 
+  // A primary key reports notnull=0 when it is a rowid alias, but a stored row
+  // always has one — so in the row context the key is presence, not nullability.
   const optional = context === "insert"
     ? !col.notnull || col.dflt_value !== null
-    : !col.notnull;
+    : !col.notnull && !col.pk;
 
   return optional ? `${base}.optional()` : base;
 }

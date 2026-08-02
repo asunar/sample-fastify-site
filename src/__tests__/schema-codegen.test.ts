@@ -64,6 +64,18 @@ describe("columnToZodExpr", () => {
     db.close();
   });
 
+  // INTEGER PRIMARY KEY is a rowid alias, which PRAGMA table_info reports as
+  // notnull=0. A stored row always has one regardless, so nullability is the
+  // wrong signal for the key.
+  test("a primary key is required in a row despite reporting notnull=0", () => {
+    const { db, columns } = fixtureColumns();
+
+    assert.strictEqual(columns.id.notnull, 0, "fixture assumption: rowid alias is notnull=0");
+    assert.strictEqual(columnToZodExpr(columns.id, "row"), "z.number().int()");
+
+    db.close();
+  });
+
   test("a NOT NULL column with an expression default behaves the same way", () => {
     const { db, columns } = fixtureColumns();
 
@@ -91,9 +103,12 @@ describe("generateSchemaForTable", () => {
     assert.match(row, /literal: z\.number\(\)\.int\(\),/);
     assert.match(row, /expression: z\.string\(\),/);
 
-    // The primary key is excluded from the write body and present in the row.
+    // The primary key is excluded from the write body and non-optional in the row.
     assert.ok(!insert.includes("id:"));
-    assert.match(row, /id: z\.number\(\)\.int\(\)/);
+    assert.match(row, /id: z\.number\(\)\.int\(\),/);
+
+    // Same for the insert response: lastInsertRowid always yields a value.
+    assert.match(block("InsertResponse"), /id: z\.number\(\)\.int\(\),/);
 
     db.close();
   });
