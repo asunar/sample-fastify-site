@@ -34,6 +34,73 @@ describe("posts routes", () => {
     assert.strictEqual(response.statusCode, 404);
   });
 
-  // Add POST and PATCH cases here — they need column values this scaffold
-  // cannot guess. See src/__tests__/users.test.ts for the shape.
+  test("creates a post against a real author", async () => {
+    const author = await app.inject({
+      method: "POST",
+      url: "/authors",
+      payload: { name: "Ada", email: "ada@example.com" },
+    });
+    const { id: authorId } = author.json();
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/posts",
+      payload: { author_id: authorId, title: "Hello", slug: "hello", body: "..." },
+    });
+
+    assert.strictEqual(response.statusCode, 201);
+  });
+
+  // The database is the authority on whether a referenced row exists, so this is
+  // caught rather than pre-checked. Before the error handler mapped it, the raw
+  // SQLite failure reached the client as a 500.
+  test("returns 422 when author_id references an author that does not exist", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/posts",
+      payload: { author_id: 999999, title: "Orphan", slug: "orphan", body: "..." },
+    });
+
+    assert.strictEqual(response.statusCode, 422);
+    assert.strictEqual(response.json().error, "Unprocessable Content");
+    assert.ok(
+      !response.body.includes("FOREIGN KEY"),
+      `driver detail leaked to client: ${response.body}`,
+    );
+  });
+
+  test("returns 422 when patching author_id to one that does not exist", async () => {
+    const author = await app.inject({
+      method: "POST",
+      url: "/authors",
+      payload: { name: "Grace", email: "grace@example.com" },
+    });
+    const created = await app.inject({
+      method: "POST",
+      url: "/posts",
+      payload: { author_id: author.json().id, title: "T", slug: "patch-me", body: "..." },
+    });
+
+    const response = await app.inject({
+      method: "PATCH",
+      url: `/posts/${created.json().id}`,
+      payload: { author_id: 999999 },
+    });
+
+    assert.strictEqual(response.statusCode, 422);
+  });
+
+  test("returns 409 when the slug is already taken", async () => {
+    const author = await app.inject({
+      method: "POST",
+      url: "/authors",
+      payload: { name: "Alan", email: "alan@example.com" },
+    });
+
+    const payload = { author_id: author.json().id, title: "Dup", slug: "taken", body: "..." };
+    await app.inject({ method: "POST", url: "/posts", payload });
+    const response = await app.inject({ method: "POST", url: "/posts", payload });
+
+    assert.strictEqual(response.statusCode, 409, "unique violations must still win");
+  });
 });
