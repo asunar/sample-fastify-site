@@ -1,6 +1,7 @@
 import test, { before, after, describe } from "node:test";
 import assert from "node:assert";
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { buildApp } from "../app.ts";
 
 const INTERNAL_DETAIL = "connection string postgres://user:hunter2@host/db";
@@ -14,6 +15,12 @@ function buildAppWithFailingRoute(nodeEnv: string) {
   app.get("/boom", async () => {
     throw new Error(INTERNAL_DETAIL);
   });
+
+  // Owned by this harness rather than borrowed from an application route, so the
+  // error handler's validation behaviour is testable with no tables in the schema.
+  app.post("/validate-me", {
+    schema: { body: z.object({ email: z.email() }) },
+  }, async () => ({ ok: true }));
 
   return {
     app,
@@ -51,7 +58,7 @@ describe("error handler in production", () => {
   test("still validates request bodies", async () => {
     const response = await app.inject({
       method: "POST",
-      url: "/users",
+      url: "/validate-me",
       payload: { email: "not-an-email" },
     });
 

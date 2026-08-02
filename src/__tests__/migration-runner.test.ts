@@ -65,8 +65,13 @@ test("latest skips already applied migrations", () => {
 test("latest defaults to the project's own migrations directory", () => {
   const db = new DatabaseSync(":memory:");
 
-  latest(db);
+  // Asserts against the directory rather than any particular table, so adding or
+  // removing migrations does not break this test. user_version lands on the
+  // highest-numbered file, and 0 is correct when there are none yet.
+  const expected = fs.readdirSync(path.join(import.meta.dirname, "..", "db", "migrations"))
+    .filter((file) => file.endsWith(".sql"))
+    .reduce((max, file) => Math.max(max, parseInt(file.split("_")[0])), 0);
 
-  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").all();
-  assert.strictEqual(tables.length, 1, "users table should be created from src/db/migrations");
+  assert.doesNotThrow(() => latest(db));
+  assert.strictEqual(getCurrentVersion(db), expected);
 });
