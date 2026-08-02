@@ -8,10 +8,15 @@ import { type ColumnInfo, getColumns, toPascalCase } from "./introspect.ts";
 // Each schema asks a different question of the same column, and they do not have
 // the same answer:
 //
-//   insert — must the client supply this?      no, if it is nullable or defaulted
+//   insert — what may the client send?         omit it if nullable or defaulted,
+//                                              and null itself if nullable
 //   row    — what can a stored value be?       null, if the column is nullable
-//   update — a partial, so everything optional
+//   update — a partial, so everything optional, and nullable columns can be
+//            cleared back to NULL by sending null
 //   params — a path parameter, so always required
+//
+// A defaulted NOT NULL column is optional but never nullable: omitting it means
+// "use the default", whereas null would violate the constraint.
 export type SchemaContext = "insert" | "row" | "update" | "params";
 
 export function columnToZodExpr(col: ColumnInfo, context: SchemaContext = "row"): string {
@@ -28,12 +33,16 @@ export function columnToZodExpr(col: ColumnInfo, context: SchemaContext = "row")
       return base;
 
     case "update":
-      return `${base}.optional()`;
+      // .nullish() is .nullable().optional(): absent leaves the column alone,
+      // explicit null clears it. The scaffolded PATCH handler skips undefined
+      // and writes null, so the two are already distinguishable downstream.
+      return !col.notnull ? `${base}.nullish()` : `${base}.optional()`;
 
     case "insert":
       // The database fills defaulted columns, so requiring them of the client
       // would force it to send a value the server was going to generate.
-      return !col.notnull || col.dflt_value !== null ? `${base}.optional()` : base;
+      if (!col.notnull) return `${base}.nullish()`;
+      return col.dflt_value !== null ? `${base}.optional()` : base;
 
     case "row":
       // .nullable(), not .optional(): node:sqlite returns SQL NULL as JavaScript

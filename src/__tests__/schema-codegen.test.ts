@@ -38,11 +38,25 @@ describe("columnToZodExpr", () => {
   // The distinction that matters: node:sqlite hands back SQL NULL as JavaScript
   // null and always includes the column, so a row's nullable value is null, never
   // absent. zod's .optional() means `| undefined` and rejects null outright.
-  test("a nullable column is optional to insert and nullable in a row", () => {
+  test("a nullable column may be omitted or sent as null, and reads back as null", () => {
     const { db, columns } = fixtureColumns();
 
-    assert.strictEqual(columnToZodExpr(columns.nullable, "insert"), "z.string().optional()");
+    // .nullish() is .nullable().optional(): omit it, or send null deliberately.
+    assert.strictEqual(columnToZodExpr(columns.nullable, "insert"), "z.string().nullish()");
+    assert.strictEqual(columnToZodExpr(columns.nullable, "update"), "z.string().nullish()");
     assert.strictEqual(columnToZodExpr(columns.nullable, "row"), "z.string().nullable()");
+
+    db.close();
+  });
+
+  // A defaulted column may be omitted, but null is not the same as "use the
+  // default" — writing null to a NOT NULL column is a constraint violation.
+  test("a defaulted NOT NULL column is optional but never nullable", () => {
+    const { db, columns } = fixtureColumns();
+
+    assert.strictEqual(columnToZodExpr(columns.literal, "insert"), "z.number().int().optional()");
+    assert.strictEqual(columnToZodExpr(columns.expression, "insert"), "z.string().optional()");
+    assert.strictEqual(columnToZodExpr(columns.literal, "update"), "z.number().int().optional()");
 
     db.close();
   });
@@ -51,7 +65,6 @@ describe("columnToZodExpr", () => {
     const { db, columns } = fixtureColumns();
 
     assert.strictEqual(columnToZodExpr(columns.required, "update"), "z.string().optional()");
-    assert.strictEqual(columnToZodExpr(columns.nullable, "update"), "z.string().optional()");
     assert.strictEqual(columnToZodExpr(columns.id, "params"), "z.number().int()");
 
     db.close();
@@ -128,7 +141,7 @@ describe("generateSchemaForTable", () => {
     db.close();
   });
 
-  test("every column is optional in the update schema", () => {
+  test("no column is required in the update schema", () => {
     const { db } = fixtureColumns();
 
     const source = generateSchemaForTable(db, "widgets");
@@ -136,8 +149,13 @@ describe("generateSchemaForTable", () => {
       .split("export const BaseWidgetsUpdateSchema = z.object({")[1]
       .split("});")[0];
 
+    // .nullish() is .nullable().optional(), so it satisfies "not required" too.
     for (const line of update.trim().split("\n")) {
-      assert.match(line, /\.optional\(\),$/, `not optional in update schema: ${line.trim()}`);
+      assert.match(
+        line,
+        /\.(optional|nullish)\(\),$/,
+        `required in update schema: ${line.trim()}`,
+      );
     }
 
     db.close();

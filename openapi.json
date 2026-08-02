@@ -96,6 +96,7 @@
                     "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                   },
                   "bio": {
+                    "nullable": true,
                     "type": "string"
                   },
                   "created_at": {
@@ -265,6 +266,7 @@
                     "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                   },
                   "bio": {
+                    "nullable": true,
                     "type": "string"
                   },
                   "created_at": {
@@ -515,6 +517,7 @@
                     "type": "string"
                   },
                   "author_email": {
+                    "nullable": true,
                     "type": "string"
                   },
                   "body": {
@@ -694,6 +697,7 @@
                     "type": "string"
                   },
                   "author_email": {
+                    "nullable": true,
                     "type": "string"
                   },
                   "body": {

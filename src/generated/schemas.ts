@@ -6,7 +6,7 @@ import { z } from "zod";
 export const BaseAuthorsInsertSchema = z.object({
   name: z.string(),
   email: z.string(),
-  bio: z.string().optional(),
+  bio: z.string().nullish(),
   created_at: z.string().optional(),
 });
 
@@ -17,7 +17,7 @@ export const BaseAuthorsInsertResponseSchema = z.object({
 export const BaseAuthorsUpdateSchema = z.object({
   name: z.string().optional(),
   email: z.string().optional(),
-  bio: z.string().optional(),
+  bio: z.string().nullish(),
   created_at: z.string().optional(),
 });
 
@@ -70,7 +70,7 @@ export const BasePostsRowSchema = z.object({
 export const BaseCommentsInsertSchema = z.object({
   post_id: z.number().int(),
   author_name: z.string(),
-  author_email: z.string().optional(),
+  author_email: z.string().nullish(),
   body: z.string(),
   created_at: z.string().optional(),
 });
@@ -82,7 +82,7 @@ export const BaseCommentsInsertResponseSchema = z.object({
 export const BaseCommentsUpdateSchema = z.object({
   post_id: z.number().int().optional(),
   author_name: z.string().optional(),
-  author_email: z.string().optional(),
+  author_email: z.string().nullish(),
   body: z.string().optional(),
   created_at: z.string().optional(),
 });
