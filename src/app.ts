@@ -19,6 +19,7 @@ import {
 } from "fastify-type-provider-zod";
 import { connectToDb } from "./db/db.ts";
 import { latest } from "./db/migration-runner.ts";
+import { isForeignKeyViolation } from "./routes/sqlite-errors.ts";
 
 // 1MB. Fastify's own default, set explicitly so the limit is visible rather than
 // implied — it is the first thing to tune if large payloads are ever expected.
@@ -74,6 +75,21 @@ export function buildApp(
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
+    // A payload referencing a row that does not exist is a client mistake, not a
+    // server fault, so it is logged as a warning rather than paged on. Handled
+    // centrally because every route rethrows what it does not map itself, and the
+    // database is the only authority on whether a referenced row exists — a
+    // pre-check in a schema would race with a concurrent delete.
+    if (isForeignKeyViolation(error)) {
+      request.log.warn({ err: error }, "Foreign key violation");
+
+      return reply.code(422).send({
+        statusCode: 422,
+        error: "Unprocessable Content",
+        message: "The request references a record that does not exist.",
+      });
+    }
+
     // Always record the real error server-side, whatever we choose to disclose.
     request.log.error({ err: error }, "Request error");
 
